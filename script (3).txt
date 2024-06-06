@@ -1,0 +1,196 @@
+function doGet(e) {
+  const action = e.parameter.action;
+  if (action === 'fetchData') {
+    return fetchData();
+  }
+  return ContentService.createTextOutput('Invalid request').setMimeType(ContentService.MimeType.TEXT);
+}
+
+function doPost(e) {
+  const request = JSON.parse(e.postData.contents);
+  const action = request.action;
+  if (action === 'login') {
+    return login(request);
+  } else if (action === 'placeOrder') {
+    return placeOrder(request);
+  }
+  return ContentService.createTextOutput('Invalid request').setMimeType(ContentService.MimeType.TEXT);
+}
+
+function fetchData() {
+  const sheet = SpreadsheetApp.openById('1oqsGhwCleP_WOBrwRutNU6v5HDOSoTA2epc7keDGag8').getSheetByName('Products');
+  const data = sheet.getDataRange().getValues();
+  const headers = data.shift();
+  const jsonData = data.map(row => {
+    let obj = {};
+    row.forEach((cell, index) => {
+      obj[headers[index]] = cell;
+    });
+    return obj;
+  });
+  return ContentService.createTextOutput(JSON.stringify(jsonData)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function login(request) {
+  const { username, password } = request;
+  const sheet = SpreadsheetApp.openById('1oqsGhwCleP_WOBrwRutNU6v5HDOSoTA2epc7keDGag8').getSheetByName('Signup');
+  const data = sheet.getDataRange().getValues();
+  const user = data.find(row => row[0] === username && row[1] === password);
+
+  if (user) {
+    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+  } else {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: 'Invalid username or password.' })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function placeOrder(request) {
+  const { cart, username } = request;
+  const sheet = SpreadsheetApp.openById('1oqsGhwCleP_WOBrwRutNU6v5HDOSoTA2epc7keDGag8').getSheetByName('Signup');
+  const data = sheet.getDataRange().getValues();
+  const headers = data.shift();
+  const userRow = data.find(row => row[2] === username); // Assuming username is in Column C
+
+  if (userRow) {
+    const userEmail = userRow[1]; // Assuming email is in Column B
+    const userName = userRow[3]; // Assuming name is in Column D
+    const orderData = userRow.slice(1, 9); // Get details from Row B to I
+    const productsData = []; // Array to hold product details
+
+    // Prepare product data array
+    cart.forEach(item => {
+      productsData.push({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.quantity * item.price
+      });
+    });
+
+    // Calculate the total amount
+    const totalAmount = productsData.reduce((total, product) => total + product.total, 0);
+
+    // Append order details to the end of the array
+    orderData.push(JSON.stringify(productsData));
+
+    // Add timestamp in column A
+    orderData.unshift(new Date()); // Add timestamp at the beginning of the array
+
+    // Append order data to another sheet
+    const orderSheet = SpreadsheetApp.openById('1oqsGhwCleP_WOBrwRutNU6v5HDOSoTA2epc7keDGag8').getSheetByName('Orders');
+    orderSheet.appendRow(orderData);
+
+    // Generate email body with specific user details
+    let emailBody = `An Order Has Been Placed.\n\nCheck Order Details From This PDF:\n`;
+
+    // Create an HTML template for the PDF with CSS styling
+    const htmlContent = HtmlService.createHtmlOutput(`
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; }
+            .header { text-align: center; margin-bottom: 20px; }
+            .order-details { margin-bottom: 20px; }
+            .order-details h2 { margin: 0; }
+            .user-details, .product-details { margin-bottom: 20px; }
+            .user-details h3, .product-details h3 { margin: 0; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 8px; text-align: left; border: 1px solid #ddd; }
+            th { background-color: #f2f2f2; }
+            .total-amount { text-align: right; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Rahul Book Point</h1>
+          </div>
+          <div class="order-details">
+            <h2>Order Details</h2>
+            <p><strong>Timestamp:</strong> ${new Date()}</p>
+          </div>
+          <div class="user-details">
+            <h3>User Details</h3>
+            ${headers.slice(1, 9).map((header, index) => `<p><strong>${header}:</strong> ${userRow[index + 1]}</p>`).join('')}
+          </div>
+          <div class="product-details">
+            <h3>Products</h3>
+            <table>
+              <tr>
+                <th>Name</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+              </tr>
+              ${productsData.map(product => `
+                <tr>
+                  <td>${product.name}</td>
+                  <td>${product.quantity}</td>
+                  <td>${product.price}</td>
+                  <td>${product.total}</td>
+                </tr>`).join('')}
+            </table>
+          </div>
+          <div class="total-amount">
+            <h3>Total Amount</h3>
+            <b>${totalAmount}</b>
+          </div>
+        </body>
+      </html>
+    `).getContent();
+
+    // Convert the HTML content to a PDF
+    const pdfBlob = Utilities.newBlob(htmlContent, 'text/html').getAs('application/pdf').setName('Order Details.pdf');
+
+    // Send email notification with PDF attachment to admin
+    const subject = `New Order Placed - ${username}`;
+    MailApp.sendEmail({
+      to: "createprincemahto@gmail.com",
+      subject: subject,
+      body: emailBody,
+      attachments: [pdfBlob]
+    });
+
+    // Send thank you email to user without PDF attachment
+    const userSubject = 'Thank You for Your Order';
+    const userBody = `
+      <html>
+        <body>
+          <p>Dear ${userName},</p>
+          <p>Thank you for your recent order from Rahul Book Point! We appreciate your business and are pleased to confirm that we have received your order.</p>
+          <p><strong>Order Details:</strong></p>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr>
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd; background-color: #f2f2f2;">Name</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd; background-color: #f2f2f2;">Quantity</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd; background-color: #f2f2f2;">Price</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd; background-color: #f2f2f2;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${productsData.map(product => `
+                <tr>
+                  <td style="padding: 8px; text-align: left; border: 1px solid #ddd;">${product.name}</td>
+                  <td style="padding: 8px; text-align: left; border: 1px solid #ddd;">${product.quantity}</td>
+                  <td style="padding: 8px; text-align: left; border: 1px solid #ddd;">${product.price}</td>
+                  <td style="padding: 8px; text-align: left; border: 1px solid #ddd;">${product.total}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+          <p><strong>Total Amount:</strong> ${totalAmount}</p>
+          <p>If you have any questions or need further assistance, please feel free to contact us.</p>
+          <p>Best regards,<br>Rahul Book Point</p>
+        </body>
+      </html>
+    `;
+    MailApp.sendEmail({
+      to: userEmail,
+      subject: userSubject,
+      htmlBody: userBody
+    });
+
+    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+  } else {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: 'User not found.' })).setMimeType(ContentService.MimeType.JSON);
+  }
+}

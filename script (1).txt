@@ -1,0 +1,25 @@
+function doGet() {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data = sheet.getDataRange().getValues();
+    var jsonData = [];
+
+    for (var i = 1; i < data.length; i++) {
+      jsonData.push({
+        name: data[i][0],
+        imageUrl: data[i][1],
+        price: data[i][2],
+        type: data[i][3],
+        description: data[i][4],
+        additionalImages: [data[i][5], data[i][6], data[i][7]] // Columns F, G, H
+      });
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(jsonData))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (e) {
+    Logger.log(e.toString());
+    return ContentService.createTextOutput(JSON.stringify({error: e.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}

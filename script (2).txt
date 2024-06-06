@@ -1,0 +1,102 @@
+function doGet(e) {
+  var ss = SpreadsheetApp.openByUrl("https://docs.google.com/spreadsheets/d/1oqsGhwCleP_WOBrwRutNU6v5HDOSoTA2epc7keDGag8/edit#gid=723649329");
+  var sheet = ss.getSheetByName("Signup");
+
+  // Check if the request is for sending OTP
+  if (e.parameter.requestOTP === 'true') {
+    var email = e.parameter.email;
+    var username = e.parameter.username;
+
+    // Check if the email already exists
+    var data = sheet.getRange("B:B").getValues();
+    for (var i = 0; i < data.length; i++) {
+      if (data[i][0] === email) {
+        return ContentService.createTextOutput("Email already exists");
+      }
+    }
+
+    // Check if the username already exists
+    var dataUsername = sheet.getRange("C:C").getValues();
+    for (var i = 0; i < dataUsername.length; i++) {
+      if (dataUsername[i][0] === username) {
+        return ContentService.createTextOutput("Username already exists");
+      }
+    }
+
+    // If email and username don't exist, send OTP to Google Sheets
+    sendOTPToSheet(email);
+    return ContentService.createTextOutput("OTP sent to Google Sheets");
+  } 
+  // Check if the request is for verifying OTP
+  else if (e.parameter.verifyOTP === 'true') {
+    return verifyOTP(e);
+  } 
+  // Otherwise, process additional form data
+  else {
+    var email = e.parameter.email;
+    var username = e.parameter.username;
+
+    // Check if the email or username already exists
+    var dataEmail = sheet.getRange("B:B").getValues();
+    var dataUsername = sheet.getRange("C:C").getValues();
+    for (var i = 0; i < dataEmail.length; i++) {
+      if (dataEmail[i][0] === email) {
+        return ContentService.createTextOutput("Email already exists");
+      }
+    }
+    for (var i = 0; i < dataUsername.length; i++) {
+      if (dataUsername[i][0] === username) {
+        return ContentService.createTextOutput("Username already exists");
+      }
+    }
+
+    // If neither email nor username exists, append new data and return success message
+    var newRow = [
+      new Date(),
+      email,
+      username,
+      e.parameter.name,
+      e.parameter.mobile,
+      e.parameter.pincode,
+      e.parameter.state,
+      e.parameter.city,
+      e.parameter.address,
+      e.parameter.password
+    ];
+    sheet.appendRow(newRow);
+    return ContentService.createTextOutput("Signup successfully");
+  }
+}
+
+function sendOTPToSheet(email) {
+  var ss = SpreadsheetApp.openByUrl("https://docs.google.com/spreadsheets/d/1oqsGhwCleP_WOBrwRutNU6v5HDOSoTA2epc7keDGag8/edit#gid=653153195");
+  var otpSheet = ss.getSheetByName("OTP");
+  var data = otpSheet.getDataRange().getValues();
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][1] === email) {
+      return;
+    }
+  }
+  var otp = Math.floor(100000 + Math.random() * 900000);
+  otpSheet.appendRow([new Date(), email, otp]);
+  MailApp.sendEmail({
+    to: email,
+    subject: "OTP Verification",
+    body: "Your OTP is: " + otp
+  });
+}
+
+function verifyOTP(e) {
+  var otpEntered = e.parameter.otp;
+  var email = e.parameter.email;
+  var ss = SpreadsheetApp.openByUrl("https://docs.google.com/spreadsheets/d/1oqsGhwCleP_WOBrwRutNU6v5HDOSoTA2epc7keDGag8/edit#gid=653153195");
+  var otpSheet = ss.getSheetByName("OTP");
+  var data = otpSheet.getDataRange().getValues();
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][1] === email && data[i][2] == otpEntered) {
+      otpSheet.deleteRow(i + 1);
+      return ContentService.createTextOutput("OTP verified");
+    }
+  }
+  return ContentService.createTextOutput("Invalid OTP");
+}

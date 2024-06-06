@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        #cartItems {
+            list-style-type: none;
+            padding: 0;
+        }
+        #cartItems li {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        #placeOrderButton {
+            display: block;
+            margin: 20px 0;
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #placeOrderButton:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <h1>Checkout</h1>
+    <ul id="cartItems"></ul>
+    <button id="placeOrderButton" onclick="placeOrder()">Place Order</button>
+    <script>
+        let cart = [];
+
+        const loadCart = () => {
+            const savedCart = localStorage.getItem('cart');
+            if (savedCart) {
+                cart = JSON.parse(savedCart);
+            }
+            updateCart();
+        };
+
+        const updateCart = () => {
+            const cartItems = document.getElementById('cartItems');
+            cartItems.innerHTML = '';
+            cart.forEach((item) => {
+                const li = document.createElement('li');
+                li.textContent = `${item.name} - ₹${item.price} x ${item.quantity}`;
+                cartItems.appendChild(li);
+            });
+        };
+
+        const placeOrder = async () => {
+            try {
+                const response = await fetch('https://script.google.com/macros/s/AKfycbwBfjvBa9o1kF_7Xf7k6xBF-ueXoS_dayeiK-DoWL46GYQ2n69o6410vt_KfvD_zOCt/exec', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'placeOrder',
+                        cart,
+                        username: localStorage.getItem('sdsUsername')
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('Order placed successfully!');
+                    localStorage.removeItem('cart');
+                    window.location.href = 'beta.html';
+                } else {
+                    alert('Failed to place order. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error placing order:', error);
+                alert('There was an error placing your order. Please try again.');
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', loadCart);
+    </script>
+</body>
+</html>

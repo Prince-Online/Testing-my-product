@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+        }
+        #productDetails {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 600px;
+            margin: 20px;
+        }
+        #productDetails img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+        #productDetails h2 {
+            font-size: 1.5em;
+            margin: 10px 0;
+            color: #333;
+        }
+        #productDetails p {
+            font-size: 1em;
+            margin: 10px 0;
+            color: #555;
+        }
+        #productDetails button {
+            padding: 10px 15px;
+            margin-top: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #productDetails button:hover {
+            background-color: #218838;
+        }
+        #additionalImages {
+            display: flex;
+            margin-top: 20px;
+            width: 100%;
+        }
+        #additionalImages img {
+            flex: 0 0 auto;
+            max-width: 100px;
+            height: auto;
+            border-radius: 5px;
+            margin: 10px;
+        }
+        .product-image {
+            width: 450px;
+        }
+        .product-box {
+            display: flex;
+            width: 50%;
+            overflow-x: scroll;
+        }
+    </style>
+</head>
+<body>
+    <div id="productDetails">
+        <div class="product-box">
+            <img id="productImage" src="" alt="Product Image" class="product-image">
+            <div id="additionalImages" class="product-image"></div>
+        </div>
+        <h2 id="productName"></h2>
+        <p id="productPrice"></p>
+        <p id="productDescription"></p>
+        <button onclick="addToCart()">Add to Cart</button>
+    </div>
+
+    <script>
+        const product = JSON.parse(localStorage.getItem('currentProduct'));
+
+        document.getElementById('productImage').src = product.imageUrl;
+        document.getElementById('productName').textContent = product.name;
+        document.getElementById('productPrice').textContent = 'Price: ₹' + product.price;
+        document.getElementById('productDescription').textContent = product.description;
+
+        const additionalImagesContainer = document.getElementById('additionalImages');
+        product.additionalImages.forEach(imgUrl => {
+            if (imgUrl) {
+                const img = document.createElement('img');
+                img.src = imgUrl;
+                additionalImagesContainer.appendChild(img);
+            }
+        });
+
+        function addToCart() {
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const existingItem = cart.find(item => item.name === product.name);
+
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ name: product.name, price: product.price, quantity: 1 });
+            }
+
+            localStorage.setItem('cart', JSON.stringify(cart));
+            alert('Item added to cart');
+        }
+    </script>
+</body>
+</html>
