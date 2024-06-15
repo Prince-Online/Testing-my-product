@@ -3,6 +3,9 @@
 .item{
     cursor: pointer;
 }
+*{
+    overflow: hidden;
+}
 body {
     font-family: 'Roboto', Arial, sans-serif;
     margin: 0;
@@ -96,6 +99,7 @@ h1, h2, p {
     display: flex;
     align-items: center;
     gap: 10px;
+    margin-top: -12px;
 }
 
 #cart .material-icons {
@@ -421,17 +425,24 @@ h1, h2, p {
     }
     .search-container{
         display: flex;
-        width: 166%;
+        width: 100%;
         align-items: center;
         margin-top: 10px;
-        margin-left: -16%;
+    }
+    .header{
+        margin-left:%;
     }
     .app-icon{
-        width: 50px;
+        width: 35px;
+        margin-top: 10px;
     }
     #searchBox{
+        padding: 10px;
+        width: 18rem;
+        margin-left: 18px;
+    }
+    .search-btn{
         padding: 5px;
-        width: 66%;
     }
     #cartCounter {
     background-color: #ff6200;
