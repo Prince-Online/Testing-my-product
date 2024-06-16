@@ -4,7 +4,7 @@
     cursor: pointer;
 }
 *{
-    overflow: hidden;
+    overflow-x: hidden;
 }
 body {
     font-family: 'Roboto', Arial, sans-serif;
@@ -350,6 +350,7 @@ h1, h2, p {
     }
     .item-d{
         margin-top: 17px;
+        margin-left: 4px;
     }
     .item button {
         margin-top: -10px;
@@ -412,7 +413,8 @@ h1, h2, p {
     .item button {
         padding: 10px;
         width: auto;
-        align-self: flex-start;
+        overflow: hidden;
+        margin-left: 4px;
     }
     .box-d{
         text-align: center;
