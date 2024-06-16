@@ -25,7 +25,7 @@
             border-bottom: 1px solid #ddd;
         }
         #placeOrderButton {
-            display: block;
+            display: none;
             margin: 20px 0;
             padding: 10px 15px;
             background-color: #28a745;
@@ -37,21 +37,48 @@
         #placeOrderButton:hover {
             background-color: #218838;
         }
+        .payment-option {
+            margin: 10px 0;
+        }
+        #qrCode {
+            display: none;
+            margin: 20px 0;
+        }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 </head>
 <body>
     <h1>Checkout</h1>
     <ul id="cartItems"></ul>
+
+    <div class="payment-option">
+        <input type="radio" id="payOnline" name="paymentMethod" value="Online" onclick="handlePaymentSelection()">
+        <label for="payOnline">Pay Online</label>
+    </div>
+    <div class="payment-option">
+        <input type="radio" id="payCod" name="paymentMethod" value="Cash on Delivery" onclick="handlePaymentSelection()">
+        <label for="payCod">Cash on Delivery</label>
+    </div>
+
+    <canvas id="qrCode"></canvas>
+
     <button id="placeOrderButton" onclick="placeOrder()">Place Order</button>
+
     <script>
         let cart = [];
+        let totalAmount = 0;
 
         const loadCart = () => {
             const savedCart = localStorage.getItem('cart');
             if (savedCart) {
                 cart = JSON.parse(savedCart);
             }
+            calculateTotal();
             updateCart();
+        };
+
+        const calculateTotal = () => {
+            totalAmount = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
         };
 
         const updateCart = () => {
@@ -64,14 +91,45 @@
             });
         };
 
+        const handlePaymentSelection = () => {
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+            if (paymentMethod === 'Online') {
+                showQrCode();
+            } else if (paymentMethod === 'Cash on Delivery') {
+                showPlaceOrderButton();
+            }
+        };
+
+        const showQrCode = () => {
+            const upiId = '9234318879@fam';
+            const amount = totalAmount;
+            const upiUrl = `upi://pay?pa=${upiId}&pn=&am=${amount}&cu=INR`;
+
+            const qr = new QRious({
+                element: document.getElementById('qrCode'),
+                value: upiUrl,
+                size: 200
+            });
+
+            document.getElementById('qrCode').style.display = 'block';
+            document.getElementById('placeOrderButton').style.display = 'block';
+        };
+
+        const showPlaceOrderButton = () => {
+            document.getElementById('placeOrderButton').style.display = 'block';
+            document.getElementById('qrCode').style.display = 'none';
+        };
+
         const placeOrder = async () => {
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
             try {
-                const response = await fetch('https://script.google.com/macros/s/AKfycbwBfjvBa9o1kF_7Xf7k6xBF-ueXoS_dayeiK-DoWL46GYQ2n69o6410vt_KfvD_zOCt/exec', {
+                const response = await fetch('https://script.google.com/macros/s/AKfycbxvhFfR6gx5MJn52S77gmsdEOQRcfJefEavV_WtNpEBKpfncgT5prfFhFbAY_bihoZo/exec', {
                     method: 'POST',
                     body: JSON.stringify({
                         action: 'placeOrder',
                         cart,
-                        username: localStorage.getItem('sdsUsername')
+                        username: localStorage.getItem('sdsUsername'),
+                        paymentMethod
                     })
                 });
                 const data = await response.json();
